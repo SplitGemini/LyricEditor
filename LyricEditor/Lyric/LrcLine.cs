@@ -33,12 +33,19 @@ namespace LyricEditor.Lyric
 
         public LrcLine(double time, string text)
         {
-            LrcTime = new TimeSpan(0, 0, 0, 0, (int)(time * 1000));
+            LrcTime = new TimeSpan(0, 0, 0, 0, ((int)(time * 1000) + LrcManager.offset) < 0 ? 0 : ((int)(time * 1000) + LrcManager.offset));
             LrcText = text;
         }
         public LrcLine(TimeSpan? time, string text)
         {
-            LrcTime = time;
+            if (time.HasValue)
+            {
+                LrcTime = time + new TimeSpan(0, 0, 0, 0, LrcManager.offset);
+                if (TimeSpan.Compare(LrcTime.Value, TimeSpan.Zero) < 0)
+                {
+                    LrcTime = TimeSpan.Zero;
+                }
+            }
             LrcText = text;
         }
         public LrcLine(TimeSpan? time)
@@ -47,9 +54,10 @@ namespace LyricEditor.Lyric
 
         }
         public LrcLine(LrcLine lrcLine)
+            :this(lrcLine.LrcTime, lrcLine.LrcText)
         {
-            LrcTime = lrcLine.LrcTime;
-            LrcText = lrcLine.LrcText;
+            //LrcTime = lrcLine.LrcTime;
+            //LrcText = lrcLine.LrcText;
         }
         public LrcLine(string line)
             : this(Parse(line))

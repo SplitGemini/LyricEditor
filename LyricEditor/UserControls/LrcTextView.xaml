@@ -7,7 +7,6 @@
              xmlns:conv="clr-namespace:LyricEditor.Converters"
              mc:Ignorable="d" 
              FontSize="16"
-             FontFamily="{StaticResource LyricFont}"
              d:DesignHeight="300" d:DesignWidth="300">
     <UserControl.Resources>
         <conv:BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter"/>
@@ -18,10 +17,11 @@
             <RowDefinition Height="6"/>
             <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
-        <TextBox Name="LrcTextPanel" TextWrapping="Wrap"
+        <TextBox Name="LrcTextPanel" TextWrapping="NoWrap"
                  AcceptsReturn="True" AcceptsTab="True" Padding="5" 
                  BorderThickness="1,1,1,0"
-                 VerticalScrollBarVisibility="Auto"/>
+                 VerticalScrollBarVisibility="Auto"
+                 HorizontalScrollBarVisibility="Auto"/>
 
         <ToggleButton Name="ToolToggle" Background="White" BorderBrush="#FFABADB3" Grid.Row="1" IsChecked="False"/>
         <Border Grid.Row="2" BorderThickness="0" BorderBrush="#FFABADB3" Background="White">

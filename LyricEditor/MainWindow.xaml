@@ -4,6 +4,7 @@
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:LyricEditor"
+        xmlns:Utility="clr-namespace:LyricEditor.Utility"
         xmlns:uc="clr-namespace:LyricEditor.UserControls"
         mc:Ignorable="d"
         Icon="Icons/LrcMaker.ico"
@@ -12,8 +13,8 @@
         Closed="Window_Closed"
         Drop="Window_Drop" DragEnter="Window_DragEnter"
         AllowDrop="True"
-        MinHeight="600" MinWidth="800"
-        Height="600" Width="800"
+        MinHeight="600" MinWidth="500"
+        Height="800" Width="1000"
         Title="歌词制作器 宋祖英 - 我的祖国">
     <Window.Resources>
         <ResourceDictionary>
@@ -29,7 +30,12 @@
             <RoutedUICommand x:Key="UndoShortcut"/>
             <RoutedUICommand x:Key="RedoShortcut"/>
             <RoutedUICommand x:Key="InsertShortcut"/>
-
+            <RoutedUICommand x:Key="Jump1Shortcut"/>
+            <RoutedUICommand x:Key="Jump2Shortcut"/>
+            <RoutedUICommand x:Key="Rewind1Shortcut"/>
+            <RoutedUICommand x:Key="Rewind2Shortcut"/>
+            <RoutedUICommand x:Key="StopShortcut"/>
+            <RoutedUICommand x:Key="SwitchShortcut"/>
         </ResourceDictionary>
     </Window.Resources>
     <Window.InputBindings>
@@ -39,6 +45,12 @@
         <KeyBinding Command="{StaticResource UndoShortcut}" Gesture="Ctrl+Z"/>
         <KeyBinding Command="{StaticResource RedoShortcut}" Gesture="Ctrl+Y"/>
         <KeyBinding Command="{StaticResource InsertShortcut}" Gesture="Insert"/>
+        <KeyBinding Command="{StaticResource Jump1Shortcut}" Gesture="Right"/>
+        <KeyBinding Command="{StaticResource Jump2Shortcut}" Gesture="Ctrl+Right"/>
+        <KeyBinding Command="{StaticResource Rewind1Shortcut}" Gesture="Left"/>
+        <KeyBinding Command="{StaticResource Rewind2Shortcut}" Gesture="Ctrl+Left"/>
+        <KeyBinding Command="{StaticResource StopShortcut}" Gesture="Ctrl+S"/>
+        <KeyBinding Command="{StaticResource SwitchShortcut}" Gesture="Tab"/>
     </Window.InputBindings>
     <Window.CommandBindings>
         <CommandBinding Command="{StaticResource SetTimeShortcut}" Executed="SetTimeShortcut_Executed"/>
@@ -47,6 +59,12 @@
         <CommandBinding Command="{StaticResource UndoShortcut}" Executed="UndoShortcut_Executed"/>
         <CommandBinding Command="{StaticResource RedoShortcut}" Executed="RedoShortcut_Executed"/>
         <CommandBinding Command="{StaticResource InsertShortcut}" Executed="InsertShortcut_Executed"/>
+        <CommandBinding Command="{StaticResource Jump1Shortcut}" Executed="Jump1Shortcut_Executed"/>
+        <CommandBinding Command="{StaticResource Jump2Shortcut}" Executed="Jump2Shortcut_Executed"/>
+        <CommandBinding Command="{StaticResource Rewind1Shortcut}" Executed="Rewind1Shortcut_Executed"/>
+        <CommandBinding Command="{StaticResource Rewind2Shortcut}" Executed="Rewind2Shortcut_Executed"/>
+        <CommandBinding Command="{StaticResource StopShortcut}" Executed="StopShortcut_Executed"/>
+        <CommandBinding Command="{StaticResource SwitchShortcut}" Executed="SwitchShortcut_Executed"/>
     </Window.CommandBindings>
 
     <Grid>
@@ -57,17 +75,26 @@
         </Grid.ColumnDefinitions>
         <Grid.RowDefinitions>
             <RowDefinition Height="40"/>
+            <RowDefinition Height="40"/>
+            <RowDefinition Height="40"/>
             <RowDefinition Height="*"/>
             <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
-
-        <!--为上方控件添加一个阴影效果-->
-        <Border Grid.ColumnSpan="3" Background="White">
+        
+        <!--为上方菜单添加一个阴影效果-->
+        <Border Grid.Column="0" Grid.ColumnSpan="1" Grid.RowSpan="1" Background="White">
             <Border.Effect>
                 <DropShadowEffect ShadowDepth="0"/>
             </Border.Effect>
         </Border>
-
+        
+        <!--为上方进度条与当前歌词添加一个阴影效果-->
+        <Border Grid.Column="1" Grid.ColumnSpan="3" Grid.RowSpan="3" Background="White" Margin="5,0,0,0">
+            <Border.Effect>
+                <DropShadowEffect ShadowDepth="0"/>
+            </Border.Effect>
+        </Border>
+        
         <!--菜单栏-->
         <Menu Background="White" Margin="5">
             <MenuItem Header="文件" Style="{StaticResource MenuItemHeaderStyle}">
@@ -136,20 +163,21 @@
                 <MenuItem.Icon>
                     <Image Source="Icons/MenuIcons/edit.png"/>
                 </MenuItem.Icon>
-                <MenuItem Header="重置所有时间" Click="ResetAllTime_Click"/>
+                <MenuItem Name ="ResetAllTime" Header="重置所有时间" Click="ResetAllTime_Click"/>
                 <MenuItem Name="ClearAllTime" Header="清除时间标记" IsEnabled="False" Click="ClearAllTime_Click"/>
-                <MenuItem Header="时间整体平移" Click="ShiftAllTime_Click"/>
+                <MenuItem Name="ShiftAllTime" Header="时间整体平移" Click="ShiftAllTime_Click"/>
                 <MenuItem Name="SortTime" Header="强制排序" Click="SortTime_Click"/>
             </MenuItem>
         </Menu>
         <!--左侧界面-->
-        <StackPanel Grid.Row="1" Margin="5,5,0,5">
+        <StackPanel Grid.Row="1" Grid.RowSpan="3" Margin="5,5,0,5">
             <!--播放器-->
             <MediaElement Name="MediaPlayer" 
-                          Volume="0.7"
+                          Volume="1.0"
                           Visibility="Collapsed" 
                           LoadedBehavior="Manual" 
-                          MediaOpened="MediaPlayer_MediaOpened"/>
+                          MediaOpened="MediaPlayer_MediaOpened"
+                          MediaFailed="MediaPlayer_MediaFailed"/>
             <!--专辑封面-->
             <Grid>
                 <Border Background="#D3D3D3" 
@@ -195,32 +223,32 @@
                             </Style>
                         </Grid.Resources>
 
-                        <Button Name="ShortShiftLeft" ToolTip="小幅度快退"
+                        <Button Name="ShortShiftLeft" ToolTip="小幅度快退 (&lt;-)"
                                 Click="TimeShift_Click">
                             <Image Source="Icons/MediaButtonIcons/NavigateLeft.png" Margin="-2,0,0,0"/>
                         </Button>
-                        <Button Name="PlayButton" ToolTip="播放/暂停"
+                        <Button Name="PlayButton" ToolTip="播放/暂停 (Ctrl+P)"
                                 Click="PlayButton_Click"
                                 Grid.Column="1">
                             <Image Source="Icons/MediaButtonIcons/Start.png" Margin="2,0,0,0"/>
                         </Button>
-                        <Button Name="ShortShiftRight" ToolTip="小幅度快进"
+                        <Button Name="ShortShiftRight" ToolTip="小幅度快进 (-&gt;)"
                                 Click="TimeShift_Click"
                                 Grid.Column="2">
                             <Image Source="Icons/MediaButtonIcons/NavigateRight.png" Margin="2,0,0,0"/>
                         </Button>
-                        <Button Name="LongShiftLeft" ToolTip="大幅度快退"
+                        <Button Name="LongShiftLeft" ToolTip="大幅度快退 (Ctrl+&lt;-)"
                                 Click="TimeShift_Click"
                                 Grid.Row="1">
                             <Image Source="Icons/MediaButtonIcons/FastLeft.png" Margin="-2,0,0,0"/>
                         </Button>
-                        <Button Name="StopButton" ToolTip="停止"
+                        <Button Name="StopButton" ToolTip="停止(Ctrl+S)"
                                 Click="StopButton_Click"
                                 Grid.Row="1"
                                 Grid.Column="1">
                             <Image Source="Icons/MediaButtonIcons/Stop.png"/>
                         </Button>
-                        <Button Name="LongShiftRight" ToolTip="大幅度快进"
+                        <Button Name="LongShiftRight" ToolTip="大幅度快进 (Ctrl+-&gt;)"
                                 Click="TimeShift_Click"
                                 Grid.Row="1"
                                 Grid.Column="2">
@@ -282,15 +310,59 @@
                     <Setter Property="VerticalAlignment" Value="Center"/>
                 </Style>
             </Grid.Resources>
-            <ProgressBar Name="TimeBackground" Value="0.5" Foreground="LightBlue" Background="White" Maximum="1"/>
+            <TextBlock Name="PreLrcText" HorizontalAlignment="Center" VerticalAlignment="Center" Foreground="#FF9E4848" TextDecorations="{x:Null}" FontFamily="Microsoft YaHei"/>
+        </Grid>
+        
+        <Grid Grid.Column="1" Grid.Row="1" Margin="5">
+            <Grid.Resources>
+                <Style TargetType="TextBlock">
+                    <Setter Property="FontSize" Value="16"/>
+                    <Setter Property="VerticalAlignment" Value="Center"/>
+                </Style>
+                <Style TargetType="Label">
+                    <Setter Property="FontSize" Value="16"/>
+                    <Setter Property="VerticalAlignment" Value="Center"/>
+                </Style>
+            </Grid.Resources>
+            <ProgressBar Name="TimeBackground" Value="0.5" Foreground="LightBlue" Background="White" Maximum="1"  Margin="5,0,0,0"/>
             <TextBlock Name="CurrentTimeText" HorizontalAlignment="Left" FontWeight="Normal" Text="00:00" Margin="5,0,0,0"/>
             <TextBlock Name="TotalTimeText" HorizontalAlignment="Right" FontWeight="Normal" Text="01:00" Margin="0,0,5,0"/>
-            <TextBlock Name="CurrentLrcText" HorizontalAlignment="Center" VerticalAlignment="Center" Text="一条大河波浪宽" Foreground="#FF9E4848" TextDecorations="{x:Null}" FontFamily="{StaticResource LyricFont}"/>
+            <ScrollViewer Name="slv" IsHitTestVisible="False" Background="#05FFFFFF" Margin="50,0,50,0" VerticalScrollBarVisibility="Hidden" HorizontalScrollBarVisibility="Hidden">
+                <TextBlock HorizontalAlignment="Center" Name="CurrentLrcText"  TextDecorations="{x:Null}" FontFamily="Microsoft YaHei" Foreground="#FF9E4848">
+                    <TextBlock.Triggers>
+                        <EventTrigger RoutedEvent="Label.Loaded">
+                            <BeginStoryboard HandoffBehavior="Compose">
+                                <Storyboard>
+                                    <DoubleAnimation From="50" 
+                                        To="{Binding ElementName=slv,Path=ScrollableWidth}"
+                                        Duration="0:0:2"
+                                        Storyboard.TargetName="slv"
+                                        AutoReverse="True"
+                                        RepeatBehavior="Forever"
+                                        BeginTime="0:0:0.2"
+                                        Storyboard.TargetProperty="(Utility:ScrollViewerBehavior.HorizontalOffset)">
+                                    </DoubleAnimation>
+                                </Storyboard>
+                            </BeginStoryboard>
+                        </EventTrigger>
+                    </TextBlock.Triggers>
+                </TextBlock>
+            </ScrollViewer>
+
             <Border Name="TimeClickBar" BorderThickness="1" BorderBrush="LightGray" Background="Transparent" MouseDown="TimeClickBar_MouseDown"/>
         </Grid>
-
+        <Grid Grid.Column="1" Grid.Row="2" Margin="5">
+            <Grid.Resources>
+                <Style TargetType="TextBlock">
+                    <Setter Property="FontSize" Value="16"/>
+                    <Setter Property="VerticalAlignment" Value="Center"/>
+                </Style>
+            </Grid.Resources>
+            <TextBlock Name="NextLrcText" HorizontalAlignment="Center" VerticalAlignment="Center" Foreground="#FF9E4848" TextDecorations="{x:Null}" FontFamily="Microsoft YaHei"/>
+        </Grid>
+        
         <!--右侧工具列表-->
-        <StackPanel Grid.Column="2" Grid.RowSpan="3">
+        <StackPanel Grid.Column="2" Grid.Row="1" Grid.RowSpan="3">
             <StackPanel.Resources>
                 <Style BasedOn="{StaticResource ToolButton}" TargetType="Button">
                     <Setter Property="Width" Value="30"/>
@@ -299,13 +371,13 @@
             </StackPanel.Resources>
             <Button Name="FlagButton" 
                     Margin="0,4,0,10" 
-                    ToolTip="将当前播放位置应用到选中的歌词行"
+                    ToolTip="将当前播放位置应用到选中的歌词行 (F5)"
                     Click="SetTime_Click">
                 <Image Source="Icons/ToolButtonIcons/Flag-red.png"/>
             </Button>
-            <Button Margin="0,0,0,10" Click="SwitchLrcPanel_Click">
+            <Button Name="SwitchButton" Margin="0,0,0,10" Click="SwitchLrcPanel_Click">
                 <Button.ToolTip>
-                    切换歌词编辑模式
+                    切换歌词编辑模式 (Tab)
                 </Button.ToolTip>
                 <Image Source="Icons/ToolButtonIcons/Order.png"/>
             </Button>
@@ -335,13 +407,13 @@
             </Button>
             <Button Click="Undo_Click">
                 <Button.ToolTip>
-                    撤销
+                    撤销 (Ctrl+Z)
                 </Button.ToolTip>
                 <Image Source="Icons/ToolButtonIcons/Go-back.png"/>
             </Button>
             <Button Margin="0,0,0,10" Click="Redo_Click">
                 <Button.ToolTip>
-                    重做
+                    重做 (Ctrl+Y)
                 </Button.ToolTip>
                 <Image Source="Icons/ToolButtonIcons/Go-into.png"/>
             </Button>
@@ -349,47 +421,47 @@
             <StackPanel Name="ToolsForLrcLineOnly">
                 <Button Click="AddNewLine_Click">
                     <Button.ToolTip>
-                        在当前位置下方添加新歌词行
+                        在当前位置下方添加新歌词行 (Insert)
                     </Button.ToolTip>
                     <Image Source="Icons/ToolButtonIcons/add1.png"/>
                 </Button>
                 <Button Click="DeleteLine_Click">
                     <Button.ToolTip>
-                        删除所选歌词行
+                        删除所选歌词行 (Delete)
                     </Button.ToolTip>
                     <Image Source="Icons/ToolButtonIcons/delete1.png"/>
                 </Button>
                 <Button Click="MoveUp_Click">
                     <Button.ToolTip>
-                        将所选歌词行上移
+                        将所选歌词行上移 (Up)
                     </Button.ToolTip>
                     <Image Margin="1" Source="Icons/ToolButtonIcons/Navigate-up.png"/>
                 </Button>
                 <Button Click="MoveDown_Click">
                     <Button.ToolTip>
-                        将所选歌词行下移
+                        将所选歌词行下移 (Down)
                     </Button.ToolTip>
                     <Image Margin="1" Source="Icons/ToolButtonIcons/Navigate-down.png"/>
                 </Button>
             </StackPanel>
         </StackPanel>
 
-        <Button Click="Info_Click" Grid.Row="1" Grid.Column="2"
+        <Button Click="Info_Click" Grid.Row="3" Grid.Column="2"
                 VerticalAlignment="Bottom"
                 Style="{StaticResource ToolButton}">
             <Button.ToolTip>
-                软件信息
+                软件信息 (F1)
             </Button.ToolTip>
             <Image Margin="1" Source="Icons/ToolButtonIcons/information.png"/>
         </Button>
 
         <!--中央区域-->
-        <Border Grid.Column="1" Grid.Row="1" Background="White" Margin="5">
+        <Border Grid.Column="1" Grid.Row="3" Background="White" Margin="5">
             <Border.Effect>
                 <DropShadowEffect x:Name="UserControlDropShadow" ShadowDepth="0" BlurRadius="0"/>
             </Border.Effect>
         </Border>
-        <UserControl Name="LrcPanelContainer" Grid.Column="1" Grid.Row="1" Background="White" Margin="5">
+        <UserControl Name="LrcPanelContainer" Grid.Column="1" Grid.Row="3" Background="White" Margin="5">
             <UserControl.Triggers>
                 <EventTrigger RoutedEvent="UserControl.MouseEnter">
                     <EventTrigger.Actions>

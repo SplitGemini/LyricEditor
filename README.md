@@ -21,3 +21,9 @@ If you still find the UI unsatisfying, let me introduce my earlier lyric editor 
 如果你觉得还是不够好看的话，一定是因为你没见过以前的版本。
 
 知乎链接：[歌词制作器 LyricEditor 第二版发布及使用说明](https://zhuanlan.zhihu.com/p/32588196)
+
+1. 改进，读取mp3自动先读取同目录lrc后读取tag，同时能够识别歌词里的[offset:xxx]标签并将所有歌词进行偏移
+1. 播放能够查看之前，当前，之后三句歌词，如果当前歌词宽度超过文本框，则自动滚动
+1. tooltips添加快捷键提示，同时添加快进快退，停止，上一行下一行，切换模式等快捷键
+1. 当导入歌词检查出错时，不清空文本而是转换到文本编辑模式
+1. 更多细节修改

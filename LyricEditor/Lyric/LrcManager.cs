@@ -13,7 +13,8 @@ namespace LyricEditor.Lyric
     public class LrcManager
     {
         public List<LrcLine> LrcList = new List<LrcLine>();
-
+        public static int offset = 0;
+        public string text;
         public int Count
         {
             get => LrcList.Count;
@@ -24,26 +25,25 @@ namespace LyricEditor.Lyric
             LrcList.Clear();
         }
 
-        public void LoadFromFile(string filename)
+        public bool LoadFromFile(string filename)
         {
             LrcList.Clear();
 
             using (StreamReader sr = new StreamReader(filename, GetEncoding(filename)))
             {
-                LoadFromText(sr.ReadToEnd());
+                return LoadFromText(sr.ReadToEnd());
             }
         }
         public bool LoadFromText(string text)
         {
             // 不论导入成功与否，均清空当前的显示
             Clear();
-
             // 导入的内容为空
             if (string.IsNullOrWhiteSpace(text))
             {
                 return true;
             }
-
+            this.text = text;
             var lines = text.Split(new string[] { Environment.NewLine }, StringSplitOptions.None);
             // 在 Windows 平台，但是换行符只有 \n 而不是 \r\n
             if (lines.Length == 1 && text.Contains("\n"))
@@ -55,6 +55,8 @@ namespace LyricEditor.Lyric
             var reTimeMark = new Regex(@"\[\d+\:\d+\.\d+\]");
             // 查找形如 [al:album] 的歌词信息
             var reLrcInfo = new Regex(@"\[\w+\:.+\]");
+            // 查找形如 [al:album] 的歌词信息
+            var offLrcInfo = new Regex(@"\[offset\:.+\]");
             // 查找纯歌词文本
             var reLyric = new Regex(@"(?<=\])[^\]]+$");
 
@@ -108,15 +110,23 @@ namespace LyricEditor.Lyric
                         {
                             LrcList.Add(LrcLine.Parse(line));
                         }
+                        // 说明这是一个偏移
+                        else if (offLrcInfo.IsMatch(line))
+                        {
+                            int.TryParse(offLrcInfo.Match(line).ToString().Trim('[', ']').Substring(7),out offset);
+                            Console.WriteLine("offset: " + line);
+                        }
                         // 说明这是一个歌词信息行
                         else if (reLrcInfo.IsMatch(line))
                         {
                             LrcList.Add(new LrcLine(null, reLrcInfo.Match(line).ToString().Trim('[', ']')));
+                            Console.WriteLine("info: " + line);
                         }
                         // 说明正常的歌词里面出现了一个不是空行，却没有时间标记的内容，则添加空时间标记
                         else
                         {
-                            LrcList.Add(new LrcLine(TimeSpan.Zero, line));
+                            LrcList.Add(new LrcLine(TimeSpan.Zero, line.Trim('[', ']')));
+                            Console.WriteLine("row line: " + line);
                         }
                         lineNumber++;
                     }
@@ -124,9 +134,8 @@ namespace LyricEditor.Lyric
                     if (multiLrc)
                         LrcList = LrcList.OrderBy(x => x.LrcTime).ToList();
                 }
-                catch (Exception e)
-                {
-                    MessageBox.Show($"歌词文本第{lineNumber}行存在格式问题，请在检查后重试。问题报告：\n" + e.Message);
+                catch (Exception e) { 
+                    MessageBox.Show($"歌词文本第{lineNumber}行 :{lines.ElementAt(lineNumber-1)}存在格式问题，请在检查后重试。问题报告：\n" + e.Message);
                     LrcList.Clear();
                     return false;
                 }
@@ -317,21 +326,32 @@ namespace LyricEditor.Lyric
             list.ScrollIntoView(list.SelectedItem);
         }
         /// <summary>
-        /// 获取当前时间对应的歌词
+        /// 获取当前时间对应的当前歌词和上一句及下一句歌词的字典
         /// </summary>
-        public string GetNearestLrc(TimeSpan time)
+        public Dictionary<string, string> GetNearestLrc(TimeSpan time)
         {
+            Dictionary<string,string> retList = new Dictionary<string, string>();
             var list = LrcList
                 .Where(x => x.LrcTime != null)
                 .Where(x => x.LrcTime <= time)
                 .OrderBy(x => x.LrcTime)
-                .Reverse()
-                .Select(x => x.LrcText)
-                .ToList();
-            if (list.Count > 0) return list[0];
-            else return string.Empty;
+                .Reverse();
+            if (list.Count() > 0)
+            {
+                var tmpList = LrcList.OrderBy(x => x.LrcTime).ToList();
+                int index = tmpList.FindIndex(delegate (LrcLine line)
+                {
+                    return line.LrcTime.Equals(list.First().LrcTime) && line.LrcText.Equals(list.First().LrcText);
+                });
+                var tmp = new LrcLine();
+                retList.Add("current", (tmpList.ElementAtOrDefault(index) ?? tmp).LrcText);
+                retList.Add("pre", (tmpList.ElementAtOrDefault(index-1) ?? tmp).LrcText);
+                retList.Add("next", (tmpList.ElementAtOrDefault(index+1) ?? tmp).LrcText);
+                return retList;
+            }
+            else return null;
         }
-
+        
         /// <summary>
         /// 返回能够用于写 lrc 文件的文本
         /// </summary>

@@ -13,6 +13,8 @@ using System.Configuration;
 using LyricEditor.UserControls;
 using LyricEditor.Lyric;
 using Win32 = System.Windows.Forms;
+using System.ComponentModel;
+using System.Runtime.CompilerServices;
 
 namespace LyricEditor
 {
@@ -30,7 +32,6 @@ namespace LyricEditor
         public MainWindow()
         {
             InitializeComponent();
-
             LrcLinePanel = (LrcLineView)LrcPanelContainer.Content;
             LrcLinePanel.MyMainWindow = this;
             LrcTextPanel = new LrcTextView();
@@ -63,7 +64,7 @@ namespace LyricEditor
 
         private string FileName;
 
-        private static string[] MediaExtensions = new string[] { ".mp3", ".wav", ".3gp", ".mp4", ".avi", ".wmv", ".wma", ".aac" };
+        private static string[] MediaExtensions = new string[] { ".mp3", ".wav", ".3gp", ".mp4", ".avi", ".wmv", ".wma", ".aac", ".flac", ".ape", ".opus", ".ogg" };
         private static string[] LyricExtensions = new string[] { ".lrc", ".txt" };
         private static string TempFileName = "temp.txt";
 
@@ -83,7 +84,17 @@ namespace LyricEditor
             CurrentTimeText.Text = $"{current.Minutes:00}:{current.Seconds:00}";
 
             TimeBackground.Value = MediaPlayer.Position.TotalSeconds / MediaPlayer.NaturalDuration.TimeSpan.TotalSeconds;
-            CurrentLrcText.Text = Manager.GetNearestLrc(MediaPlayer.Position);
+            var value = Manager.GetNearestLrc(MediaPlayer.Position);
+            if(value != null)
+            {
+                string tmp = string.Empty;
+                value.TryGetValue("current", out tmp);
+                CurrentLrcText.Text = tmp;
+                value.TryGetValue("pre", out tmp);
+                PreLrcText.Text = tmp;
+                value.TryGetValue("next", out tmp);
+                NextLrcText.Text = tmp;
+            }
         }
 
         #endregion
@@ -94,13 +105,27 @@ namespace LyricEditor
         {
             get
             {
+                
                 if (MediaPlayer.Source is null) return false;
-                else return MediaPlayer.HasAudio && MediaPlayer.NaturalDuration.HasTimeSpan;
+                if(MediaPlayer.HasAudio && MediaPlayer.NaturalDuration.HasTimeSpan)
+                {
+                    return true;
+                } else
+                {
+                    Console.WriteLine(MediaPlayer.Source is null ? "player is null" : "player isn't null" + (MediaPlayer.HasAudio ? ", has audio" : ", don't has audio") + (MediaPlayer.NaturalDuration.HasTimeSpan ? ", has time span" : ", don't has time span"));
+                    return false;
+                }
             }
         }
+
         private void Play()
         {
-            if (!IsMediaAvailable) return;
+            if (!IsMediaAvailable)
+            {
+                Console.WriteLine("media is not availible");
+                MessageBox.Show("未加载音频");
+                return;
+            }
 
             MediaPlayer.Play();
 
@@ -143,12 +168,47 @@ namespace LyricEditor
         {
             var file = TagLib.File.Create(filename);
             var bin = file.Tag.Pictures[0].Data.Data;
+            file.Dispose();
             BitmapImage image = new BitmapImage();
             image.BeginInit();
             image.StreamSource = new MemoryStream(bin);
             image.EndInit();
 
             return image;
+        }
+        private void GetLyric(string filename)
+        {
+            var lyricname = filename.Replace(".mp3", ".lrc");
+            if (File.Exists(lyricname))
+            {
+                if (Manager.LoadFromText(File.ReadAllText(lyricname)))
+                {
+                    UpdateLrcView();
+                }
+                else
+                {
+                    LrcTextPanel.Text = Manager.text;
+                    SwitchToTextLrcPanel();
+                }
+                
+            } else
+            {
+                var file = TagLib.File.Create(filename);
+                var lyric = file.Tag.Lyrics;
+                file.Dispose();
+                if (lyric != null)
+                {
+                    if (Manager.LoadFromText(lyric))
+                    {
+                        UpdateLrcView();
+                    }
+                    else
+                    {
+                        LrcTextPanel.Text = Manager.text;
+                        SwitchToTextLrcPanel();
+                    } 
+                }
+            }
         }
         private void UpdateLrcView()
         {
@@ -161,12 +221,14 @@ namespace LyricEditor
             {
                 MediaPlayer.Source = new Uri(filename);
                 MediaPlayer.Stop();
-                Title = "歌词编辑器 " + System.IO.Path.GetFileNameWithoutExtension(filename);
+                Title = "歌词编辑器 ：" + Path.GetFileNameWithoutExtension(filename);
                 Cover.Source = GetAlbumArt(filename);
+                GetLyric(filename);
             }
-            catch
+            catch (Exception e)
             {
                 Cover.Source = new BitmapImage(new Uri("Icons/disc.png", UriKind.Relative));
+                Console.WriteLine("import media:" + e.Message);
             }
         }
 
@@ -183,6 +245,8 @@ namespace LyricEditor
 
             // 上方时间轴的初始化
             CurrentLrcText.Text = string.Empty;
+            PreLrcText.Text = string.Empty;
+            NextLrcText.Text = string.Empty;
             TotalTimeText.Text = string.Empty;
             CurrentTimeText.Text = string.Empty;
             TimeBackground.Value = 0;
@@ -207,8 +271,16 @@ namespace LyricEditor
             // 打开缓存文件
             if (AutoSaveTemp.IsChecked && File.Exists(TempFileName))
             {
-                Manager.LoadFromFile(TempFileName);
-                UpdateLrcView();
+                if (Manager.LoadFromFile(TempFileName))
+                {
+                    UpdateLrcView();
+                }
+                else
+                {
+                    LrcTextPanel.Text = Manager.text;
+                    SwitchToTextLrcPanel();
+                }
+                
             }
         }
         /// <summary>
@@ -251,7 +323,7 @@ namespace LyricEditor
         private void ImportMedia_Click(object sender, RoutedEventArgs e)
         {
             Win32.OpenFileDialog ofd = new Win32.OpenFileDialog();
-            ofd.Filter = "媒体文件|*.mp3;*.wav;*.3gp;*.mp4;*.avi;*.wmv;*.wma;*.aac|所有文件|*.*";
+            ofd.Filter = "媒体文件|*.mp3;*.wav;*.3gp;*.mp4;*.avi;*.wmv;*.wma;*.aac;*.flac;*.ape;*.opus;*.ogg|所有文件|*.*";
 
             if (ofd.ShowDialog() == Win32.DialogResult.OK)
             {
@@ -269,8 +341,14 @@ namespace LyricEditor
 
             if (ofd.ShowDialog() == Win32.DialogResult.OK)
             {
-                Manager.LoadFromFile(ofd.FileName);
-                UpdateLrcView();
+                if (Manager.LoadFromFile(ofd.FileName))
+                {
+                    UpdateLrcView();
+                }else
+                {
+                    LrcTextPanel.Text = Manager.text;
+                    SwitchToTextLrcPanel();
+                }
                 FileName = ofd.FileName;
             }
         }
@@ -292,17 +370,35 @@ namespace LyricEditor
                 Encoding encoding = ExportUTF8.IsChecked ? Encoding.UTF8 : Encoding.Default;
                 using (var sw = new StreamWriter(new FileStream(ofd.FileName, FileMode.Create), encoding))
                 {
-                    sw.Write(Manager.ToString());
+                    switch (CurrentLrcPanel)
+                    {
+                        case LrcPanelType.LrcLinePanel:
+                            sw.Write(Manager.ToString());
+                            break;
+
+                        case LrcPanelType.LrcTextPanel:
+                            sw.Write(LrcTextPanel.LrcTextPanel.Text);
+                            break;
+                    }
                 }
             }
+            
+            
         }
         /// <summary>
         /// 从剪贴板粘贴歌词文本
         /// </summary>
         private void ImportLyricFromClipboard_Click(object sender, RoutedEventArgs e)
         {
-            Manager.LoadFromText(Clipboard.GetText());
-            UpdateLrcView();
+            if (Manager.LoadFromText(Clipboard.GetText()))
+            {
+                UpdateLrcView();
+            }
+            else
+            {
+                LrcTextPanel.Text = Manager.text;
+                SwitchToTextLrcPanel();
+            }
         }
         /// <summary>
         /// 将歌词文本复制到剪贴板
@@ -337,6 +433,11 @@ namespace LyricEditor
             Pause();
         }
 
+        private void MediaPlayer_MediaFailed(object sender, ExceptionRoutedEventArgs e)
+        {
+            Console.WriteLine(e.ErrorException);
+        }
+
         /// <summary>
         /// 处理窗口的文件拖入事件
         /// </summary>
@@ -354,8 +455,14 @@ namespace LyricEditor
                 }
                 else if (LyricExtensions.Contains(ext))
                 {
-                    Manager.LoadFromFile(file);
-                    UpdateLrcView();
+                    if (Manager.LoadFromFile(file))
+                    {
+                        UpdateLrcView();
+                    }else
+                    {
+                        LrcTextPanel.Text = Manager.text;
+                        SwitchToTextLrcPanel();
+                    }
                     FileName = file;
                 }
             }
@@ -416,10 +523,10 @@ namespace LyricEditor
         /// </summary>
         private void ShiftAllTime_Click(object sender, RoutedEventArgs e)
         {
-            string str = InputBox.Show(this, "请输入时间偏移量(s)：");
+            string str = InputBox.Show(this, "请输入时间偏移量(ms)：");
             if (double.TryParse(str, out double offset))
             {
-                LrcLinePanel.ShiftAllTime(new TimeSpan(0, 0, 0, 0, (int)(offset * 1000)));
+                LrcLinePanel.ShiftAllTime(new TimeSpan(0, 0, 0, 0, (int)(offset)));
             }
         }
 
@@ -439,30 +546,52 @@ namespace LyricEditor
                     UpdateLrcView();
                     LrcPanelContainer.Content = LrcTextPanel;
                     CurrentLrcPanel = LrcPanelType.LrcTextPanel;
-                    // 切换到文本编辑模式时，按钮旋转180度，且相关按钮不可用
-                    ((Image)((Button)sender).Content).LayoutTransform = new RotateTransform(180);
                     ToolsForLrcLineOnly.Visibility = Visibility.Collapsed;
                     FlagButton.Visibility = Visibility.Hidden;
+                    // 切换到text编辑模式时，按钮旋转180度，且相关按钮不可用
+                    ((Image)(SwitchButton).Content).LayoutTransform = new RotateTransform(180);
                     ClearAllTime.IsEnabled = true;
                     SortTime.IsEnabled = false;
+                    ResetAllTime.IsEnabled = false;
+                    ShiftAllTime.IsEnabled = false;
                     break;
 
                 // 切换回歌词行
                 case LrcPanelType.LrcTextPanel:
                     // 在回到歌词行模式前，要检查当前文本能否进行正确转换
-                    if (!Manager.LoadFromText(LrcTextPanel.Text)) return;
+                    if (!Manager.LoadFromText(LrcTextPanel.Text))
+                    {
+                        return;
+                    }
                     UpdateLrcView();
                     LrcPanelContainer.Content = LrcLinePanel;
                     CurrentLrcPanel = LrcPanelType.LrcLinePanel;
-                    // 切换到文本编辑模式时，按钮旋转角度复原，且相关按钮可用
-                    ((Image)((Button)sender).Content).LayoutTransform = new RotateTransform(0);
                     ToolsForLrcLineOnly.Visibility = Visibility.Visible;
                     FlagButton.Visibility = Visibility.Visible;
+                    // 切换到line编辑模式时，按钮旋转角度复原，且相关按钮可用
+                    ((Image)(SwitchButton).Content).LayoutTransform = new RotateTransform(0);
                     ClearAllTime.IsEnabled = false;
                     SortTime.IsEnabled = true;
+                    ResetAllTime.IsEnabled = true;
+                    ShiftAllTime.IsEnabled = true;
                     break;
             }
         }
+
+        private void SwitchToTextLrcPanel() {
+            if (CurrentLrcPanel == LrcPanelType.LrcTextPanel) return;
+            LrcPanelContainer.Content = LrcTextPanel;
+            CurrentLrcPanel = LrcPanelType.LrcTextPanel;
+            ToolsForLrcLineOnly.Visibility = Visibility.Collapsed;
+            FlagButton.Visibility = Visibility.Hidden;
+            // 切换到text编辑模式时
+            ((Image)SwitchButton.Content).LayoutTransform = new RotateTransform(180);
+            ClearAllTime.IsEnabled = true;
+            SortTime.IsEnabled = false;
+            ResetAllTime.IsEnabled = false;
+            ShiftAllTime.IsEnabled = false;
+        }
+
         /// <summary>
         /// 播放按钮
         /// </summary>
@@ -673,6 +802,38 @@ namespace LyricEditor
             }
         }
 
+
+        private void Jump1Shortcut_Executed(object sender, ExecutedRoutedEventArgs e)
+        {
+            MediaPlayer.Position += ShortTimeShift;
+        }
+
+        private void Jump2Shortcut_Executed(object sender, ExecutedRoutedEventArgs e)
+        {
+            MediaPlayer.Position += LongTimeShift;
+        }
+
+        private void Rewind1Shortcut_Executed(object sender, ExecutedRoutedEventArgs e)
+        {
+            MediaPlayer.Position -= ShortTimeShift;
+        }
+
+        private void Rewind2Shortcut_Executed(object sender, ExecutedRoutedEventArgs e)
+        {
+            MediaPlayer.Position -= LongTimeShift;
+        }
+
+        private void StopShortcut_Executed(object sender, ExecutedRoutedEventArgs e)
+        {
+            Stop();
+        }
+
+        private void SwitchShortcut_Executed(object sender, ExecutedRoutedEventArgs e)
+        {
+            SwitchLrcPanel_Click(this, null);
+        }
+        
+        //Delete, Up, Down快捷键处理在LrcLineView.xaml.cs实现
         #endregion
     }
 }

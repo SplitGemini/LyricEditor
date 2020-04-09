@@ -163,9 +163,26 @@ namespace LyricEditor.UserControls
                 case Key.Delete:
                     DeleteLine();
                     break;
+                default:
+                    break;
             }
         }
-
+        private void LrcLinePanel_PreviewKeyDown(object sender, KeyEventArgs e)
+        {
+            switch (e.Key)
+            {
+                case Key.Up:
+                    e.Handled = true;
+                    MoveUp();
+                    break;
+                case Key.Down:
+                    e.Handled = true;
+                    MoveDown();
+                    break;
+                default:
+                    break;
+            }
+        }
         private void AdjustCurrentLineTime(TimeSpan delta)
         {
             int index = SelectedIndex;
@@ -240,5 +257,6 @@ namespace LyricEditor.UserControls
             Manager.MoveDown(LrcLinePanel);
         }
 
+        
     }
 }
