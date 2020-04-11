@@ -80,7 +80,9 @@
     <Compile Include="UserControls\LrcTextView.xaml.cs">
       <DependentUpon>LrcTextView.xaml</DependentUpon>
     </Compile>
-    <Compile Include="Utility.cs" />
+    <Compile Include="UserControls\RollingTextBlock.xaml.cs">
+      <DependentUpon>RollingTextBlock.xaml</DependentUpon>
+    </Compile>
     <Page Include="Styles\Colors.xaml">
       <SubType>Designer</SubType>
       <Generator>MSBuild:Compile</Generator>
@@ -111,6 +113,10 @@
       <Generator>MSBuild:Compile</Generator>
     </Page>
     <Page Include="UserControls\LrcTextView.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
+    <Page Include="UserControls\RollingTextBlock.xaml">
       <SubType>Designer</SubType>
       <Generator>MSBuild:Compile</Generator>
     </Page>

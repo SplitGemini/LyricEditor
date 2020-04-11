@@ -1,0 +1,36 @@
+﻿<UserControl x:Class="LyricEditor.UserControls.RollingTextBlock"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
+             xmlns:local="clr-namespace:LyricEditor.UserControls"
+             DataContext="{Binding RelativeSource={RelativeSource Self}}"
+             mc:Ignorable="d" 
+             d:DesignHeight="40" d:DesignWidth="500">
+    <UserControl.Template>
+        <ControlTemplate TargetType="UserControl">
+            <Canvas x:Name="innerCanvas"
+                        Width="Auto"
+                        Height="40"
+                        Background="Transparent"
+                        ClipToBounds="True">
+                <TextBlock x:Name="textBlock"
+                           Height="{Binding ActualHeight,ElementName=innerCanvas}" 
+                           TextAlignment="Center"
+                           HorizontalAlignment="Center"
+                           VerticalAlignment="Center"
+                           TextWrapping="NoWrap"
+                           Width="Auto"
+                           ClipToBounds="True"
+                           Canvas.Left="{Binding Left,Mode=OneWay}"
+                           Canvas.Top="{Binding Top,Mode=OneWay}"
+                           FontSize="16"
+                           Text="{Binding Text,Mode=OneWay}"
+                           Foreground="#FF9E4848"
+                           TextDecorations="{x:Null}"
+                           FontFamily="Microsoft YaHei">
+                </TextBlock>
+            </Canvas>
+        </ControlTemplate>
+    </UserControl.Template>
+</UserControl>

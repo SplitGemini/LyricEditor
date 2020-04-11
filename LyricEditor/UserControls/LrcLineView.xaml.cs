@@ -150,8 +150,8 @@ namespace LyricEditor.UserControls
 
             LrcLine line = LrcLinePanel.SelectedItem as LrcLine;
             if (!line.LrcTime.HasValue) return;
-
             MyMainWindow.MediaPlayer.Position = line.LrcTime.Value;
+            MyMainWindow.UpdateLyric();
         }
         /// <summary>
         /// 在主列表上使用按键

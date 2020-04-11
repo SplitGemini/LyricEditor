@@ -4,7 +4,7 @@
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:LyricEditor"
-        xmlns:Utility="clr-namespace:LyricEditor.Utility"
+        xmlns:conv="clr-namespace:LyricEditor.Converters"
         xmlns:uc="clr-namespace:LyricEditor.UserControls"
         mc:Ignorable="d"
         Icon="Icons/LrcMaker.ico"
@@ -18,12 +18,10 @@
         Title="歌词制作器 宋祖英 - 我的祖国">
     <Window.Resources>
         <ResourceDictionary>
-
             <ResourceDictionary.MergedDictionaries>
                 <ResourceDictionary Source="Styles/Colors.xaml"/>
                 <ResourceDictionary Source="Styles/Styles.xaml"/>
             </ResourceDictionary.MergedDictionaries>
-
             <RoutedUICommand x:Key="SetTimeShortcut"/>
             <RoutedUICommand x:Key="HelpShortcut"/>
             <RoutedUICommand x:Key="PlayShortcut"/>
@@ -35,7 +33,8 @@
             <RoutedUICommand x:Key="Rewind1Shortcut"/>
             <RoutedUICommand x:Key="Rewind2Shortcut"/>
             <RoutedUICommand x:Key="StopShortcut"/>
-            <RoutedUICommand x:Key="SwitchShortcut"/>
+            <RoutedUICommand x:Key="SwitchShortcut"/> 
+            
         </ResourceDictionary>
     </Window.Resources>
     <Window.InputBindings>
@@ -177,7 +176,8 @@
                           Visibility="Collapsed" 
                           LoadedBehavior="Manual" 
                           MediaOpened="MediaPlayer_MediaOpened"
-                          MediaFailed="MediaPlayer_MediaFailed"/>
+                          MediaFailed="MediaPlayer_MediaFailed"
+                          MediaEnded="MediaPlayer_MediaEnded"/>
             <!--专辑封面-->
             <Grid>
                 <Border Background="#D3D3D3" 
@@ -303,7 +303,7 @@
         </StackPanel>
 
         <!--时间轴-->
-        <Grid Grid.Column="1" Margin="5">
+        <Grid Grid.Column="1" Margin="5,0,0,0">
             <Grid.Resources>
                 <Style TargetType="TextBlock">
                     <Setter Property="FontSize" Value="16"/>
@@ -313,45 +313,24 @@
             <TextBlock Name="PreLrcText" HorizontalAlignment="Center" VerticalAlignment="Center" Foreground="#FF9E4848" TextDecorations="{x:Null}" FontFamily="Microsoft YaHei"/>
         </Grid>
         
-        <Grid Grid.Column="1" Grid.Row="1" Margin="5">
+        <Grid Grid.Column="1" Grid.Row="1" Margin="5,0,0,0">
             <Grid.Resources>
                 <Style TargetType="TextBlock">
                     <Setter Property="FontSize" Value="16"/>
                     <Setter Property="VerticalAlignment" Value="Center"/>
                 </Style>
-                <Style TargetType="Label">
-                    <Setter Property="FontSize" Value="16"/>
-                    <Setter Property="VerticalAlignment" Value="Center"/>
-                </Style>
             </Grid.Resources>
-            <ProgressBar Name="TimeBackground" Value="0.5" Foreground="LightBlue" Background="White" Maximum="1"  Margin="5,0,0,0"/>
+            <ProgressBar Name="TimeBackground" Value="0.5" Foreground="LightBlue" Background="White" Maximum="1"/>
             <TextBlock Name="CurrentTimeText" HorizontalAlignment="Left" FontWeight="Normal" Text="00:00" Margin="5,0,0,0"/>
             <TextBlock Name="TotalTimeText" HorizontalAlignment="Right" FontWeight="Normal" Text="01:00" Margin="0,0,5,0"/>
-            <ScrollViewer Name="slv" IsHitTestVisible="False" Background="#05FFFFFF" Margin="50,0,50,0" VerticalScrollBarVisibility="Hidden" HorizontalScrollBarVisibility="Hidden">
-                <TextBlock HorizontalAlignment="Center" Name="CurrentLrcText"  TextDecorations="{x:Null}" FontFamily="Microsoft YaHei" Foreground="#FF9E4848">
-                    <TextBlock.Triggers>
-                        <EventTrigger RoutedEvent="Label.Loaded">
-                            <BeginStoryboard HandoffBehavior="Compose">
-                                <Storyboard>
-                                    <DoubleAnimation From="50" 
-                                        To="{Binding ElementName=slv,Path=ScrollableWidth}"
-                                        Duration="0:0:2"
-                                        Storyboard.TargetName="slv"
-                                        AutoReverse="True"
-                                        RepeatBehavior="Forever"
-                                        BeginTime="0:0:0.2"
-                                        Storyboard.TargetProperty="(Utility:ScrollViewerBehavior.HorizontalOffset)">
-                                    </DoubleAnimation>
-                                </Storyboard>
-                            </BeginStoryboard>
-                        </EventTrigger>
-                    </TextBlock.Triggers>
-                </TextBlock>
-            </ScrollViewer>
-
-            <Border Name="TimeClickBar" BorderThickness="1" BorderBrush="LightGray" Background="Transparent" MouseDown="TimeClickBar_MouseDown"/>
+            <uc:RollingTextBlock x:Name="CurrentLrcText" Background="Transparent" Foreground="#FF9E4848" FontSize="16" Margin="50,0,50,0"/>
+            <Border Name="TimeClickBar" BorderThickness="1" BorderBrush="LightGray" Background="Transparent" MouseDown="TimeClickBar_MouseDown">
+                <Border.Effect>
+                    <DropShadowEffect ShadowDepth="0"/>
+                </Border.Effect>
+            </Border>
         </Grid>
-        <Grid Grid.Column="1" Grid.Row="2" Margin="5">
+        <Grid Grid.Column="1" Grid.Row="2" Margin="5,0,0,0">
             <Grid.Resources>
                 <Style TargetType="TextBlock">
                     <Setter Property="FontSize" Value="16"/>
@@ -375,7 +354,7 @@
                     Click="SetTime_Click">
                 <Image Source="Icons/ToolButtonIcons/Flag-red.png"/>
             </Button>
-            <Button Name="SwitchButton" Margin="0,0,0,10" Click="SwitchLrcPanel_Click">
+            <Button Name="SwitchButton" Margin="0,40,0,10" Click="SwitchLrcPanel_Click">
                 <Button.ToolTip>
                     切换歌词编辑模式 (Tab)
                 </Button.ToolTip>
