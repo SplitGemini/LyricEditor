@@ -77,7 +77,8 @@ namespace LyricEditor
         private double nextTextWidth;
         private double rollingInterval = 1.0;  //每一步的偏移量
         private double offset = 10; //滚动左右空余位置
-        
+        private bool isFirst = true;
+
         public void UpdateLyric()
         {
             shouldUpdate = true;
@@ -91,7 +92,17 @@ namespace LyricEditor
                 PreLrcText.Text = tmp;
                 value.TryGetValue("next", out tmp);
                 NextLrcText.Text = tmp;
-                nextTextWidth = NextLrcText.ActualWidth;
+                value.TryGetValue("afternext", out tmp);
+                TMPLrcText.Text = tmp;
+                value.TryGetValue("short", out tmp);
+                if (tmp.Equals("true"))
+                {
+                    nextTextWidth = TMPLrcText.ActualWidth;
+                }
+                else
+                {
+                    nextTextWidth = NextLrcText.ActualWidth;
+                }
             }
         }
         
@@ -101,7 +112,7 @@ namespace LyricEditor
         private void Timer_Tick(object sender, EventArgs e)
         {
             if (!IsMediaAvailable) return;
-
+            
             var current = MediaPlayer.Position;
             CurrentTimeText.Text = $"{current.Minutes:00}:{current.Seconds:00}";
 
@@ -109,21 +120,39 @@ namespace LyricEditor
             var value = Manager.GetNearestLrc(MediaPlayer.Position);
             if(value != null)
             {
+                if (isFirst)
+                {
+                    UpdateLyric();
+                    isFirst = false;
+                }
                 string tmp = string.Empty;
+                
                 value.TryGetValue("current", out tmp);
-                if(!CurrentLrcText.Text.Equals(tmp) && !shouldUpdate)
+                if (!CurrentLrcText.Text.Equals(tmp) && !shouldUpdate)
+                {
+                    CurrentLrcText.Text = tmp;
                     CurrentLrcText.Left = (CurrentLrcText.ActualWidth - nextTextWidth) / 2;
+                    value.TryGetValue("pre", out tmp);
+                    PreLrcText.Text = tmp;
+                    value.TryGetValue("next", out tmp);
+                    NextLrcText.Text = tmp;
+                    value.TryGetValue("afternext", out tmp);
+                    TMPLrcText.Text = tmp;
+                }
+                value.TryGetValue("short", out tmp);
+                if (tmp.Equals("true"))
+                {
+                    nextTextWidth = TMPLrcText.ActualWidth;
+                }
+                else {
+                    nextTextWidth = NextLrcText.ActualWidth;
+                }           
                 if (shouldUpdate)
                 {
                     CurrentLrcText.Left = (CurrentLrcText.ActualWidth - CurrentLrcText.currentTextBlock.ActualWidth) / 2;
                     shouldUpdate = false;
                 }
-                CurrentLrcText.Text = tmp;
-                value.TryGetValue("pre", out tmp);
-                PreLrcText.Text = tmp;
-                value.TryGetValue("next", out tmp);
-                NextLrcText.Text = tmp;
-                nextTextWidth = NextLrcText.ActualWidth;
+                
             }
             var last = canRoll;
             canRoll = CurrentLrcText.currentTextBlock.ActualWidth > CurrentLrcText.ActualWidth;
@@ -228,10 +257,13 @@ namespace LyricEditor
         private void GetLyric(string filename)
         {
             var lyricname = string.Empty;
-            foreach (var ext in LyricExtensions)
+            foreach (var ext in MediaExtensions)
             {
-                if(filename.EndsWith(ext))
+                if (filename.EndsWith(ext))
+                {
                     lyricname = filename.Replace(ext, ".lrc");
+                    break;
+                }
             }
             if (!lyricname.Equals(string.Empty) && File.Exists(lyricname))
             {
@@ -812,6 +844,13 @@ namespace LyricEditor
             }
         }
 
+        private void Translate_Click(object sender, RoutedEventArgs e)
+        {
+            if (!IsMediaAvailable) return;
+            if (CurrentLrcPanel != LrcPanelType.LrcLinePanel) return;
+
+            LrcLinePanel.SetCurrentLineTimeForTranslate();
+        }
         #endregion
 
         #region 快捷键
@@ -884,9 +923,14 @@ namespace LyricEditor
             SwitchLrcPanel_Click(this, null);
         }
 
+        private void TranslateShortcut_Executed(object sender, ExecutedRoutedEventArgs e)
+        {
+            Translate_Click(this, null);
+        }
+
         //Delete, Up, Down快捷键处理在LrcLineView.xaml.cs实现
         #endregion
 
-        
+
     }
 }

@@ -70,7 +70,7 @@ namespace LyricEditor.UserControls
         public string Text
         {
             get { return (string)GetValue(TextProperty); }
-            set { SetValue(TextProperty, value); }
+            set {SetValue(TextProperty, value);}
         }
 
         public double Left

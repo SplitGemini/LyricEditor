@@ -344,9 +344,35 @@ namespace LyricEditor.Lyric
                     return line.LrcTime.Equals(list.First().LrcTime) && line.LrcText.Equals(list.First().LrcText);
                 });
                 var tmp = new LrcLine();
-                retList.Add("current", (tmpList.ElementAtOrDefault(index) ?? tmp).LrcText);
-                retList.Add("pre", (tmpList.ElementAtOrDefault(index-1) ?? tmp).LrcText);
-                retList.Add("next", (tmpList.ElementAtOrDefault(index+1) ?? tmp).LrcText);
+                //下一句歌词和下下句歌词间距非常短
+                if (tmpList.ElementAtOrDefault(index + 1) != null && tmpList.ElementAtOrDefault(index + 2) != null &&
+                    tmpList.ElementAtOrDefault(index + 2).LrcTime - tmpList.ElementAtOrDefault(index + 1).LrcTime < new TimeSpan(0, 0, 0, 0, 20))
+                {
+                    retList.Add("current", (tmpList.ElementAtOrDefault(index) ?? tmp).LrcText);
+                    retList.Add("pre", (tmpList.ElementAtOrDefault(index - 1) ?? tmp).LrcText);
+                    retList.Add("next", (tmpList.ElementAtOrDefault(index + 1) ?? tmp).LrcText);
+                    retList.Add("short","true");
+                    retList.Add("afternext", (tmpList.ElementAtOrDefault(index + 2) ?? tmp).LrcText);
+                }
+                //当前歌词和下一句歌词间距非常短
+                else if (tmpList.ElementAtOrDefault(index) != null && tmpList.ElementAtOrDefault(index + 1) != null &&
+                    tmpList.ElementAtOrDefault(index + 1).LrcTime - tmpList.ElementAtOrDefault(index).LrcTime < new TimeSpan(0, 0, 0, 0, 20))
+                {
+                    retList.Add("short", "false");
+                    retList.Add("afternext", (tmpList.ElementAtOrDefault(index + 3) ?? tmp).LrcText);
+                    retList.Add("current", (tmpList.ElementAtOrDefault(index + 1) ?? tmp).LrcText);
+                    retList.Add("pre", (tmpList.ElementAtOrDefault(index) ?? tmp).LrcText);
+                    retList.Add("next", (tmpList.ElementAtOrDefault(index + 2) ?? tmp).LrcText);
+                }
+                else
+                {
+                    retList.Add("short", "false");
+                    retList.Add("afternext", (tmpList.ElementAtOrDefault(index + +2) ?? tmp).LrcText);
+                    retList.Add("current", (tmpList.ElementAtOrDefault(index) ?? tmp).LrcText);
+                    retList.Add("pre", (tmpList.ElementAtOrDefault(index - 1) ?? tmp).LrcText);
+                    retList.Add("next", (tmpList.ElementAtOrDefault(index + 1) ?? tmp).LrcText);
+                }
+
                 return retList;
             }
             else return null;

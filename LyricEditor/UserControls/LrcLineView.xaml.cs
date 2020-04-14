@@ -224,6 +224,21 @@ namespace LyricEditor.UserControls
             RefreshLrcPanel();
             LrcLinePanel.ScrollIntoView(LrcLinePanel.SelectedItem);
         }
+        public void SetCurrentLineTimeForTranslate()
+        {
+            if (!HasSelection) return;
+            int index = SelectedIndex;
+
+            // 判断是否为歌曲信息行
+            if (!Manager.LrcList[index].LrcTime.HasValue || ReachEnd) return;
+
+            // 更新选中行的时间
+            Manager.LrcList[index].LrcTime = Manager.LrcList[index+1].LrcTime - new TimeSpan(0,0,0,0,10);
+            ((LrcLine)LrcLinePanel.Items[index]).LrcTime = Manager.LrcList[index + 1].LrcTime - new TimeSpan(0, 0, 0, 0, 10); ;
+
+            RefreshLrcPanel();
+        }
+
         public void ResetAllTime()
         {
             Manager.ResetAllTime(LrcLinePanel);

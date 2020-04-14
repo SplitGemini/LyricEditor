@@ -33,8 +33,8 @@
             <RoutedUICommand x:Key="Rewind1Shortcut"/>
             <RoutedUICommand x:Key="Rewind2Shortcut"/>
             <RoutedUICommand x:Key="StopShortcut"/>
-            <RoutedUICommand x:Key="SwitchShortcut"/> 
-            
+            <RoutedUICommand x:Key="SwitchShortcut"/>
+            <RoutedUICommand x:Key="TranslateShortcut"/>
         </ResourceDictionary>
     </Window.Resources>
     <Window.InputBindings>
@@ -50,6 +50,7 @@
         <KeyBinding Command="{StaticResource Rewind2Shortcut}" Gesture="Ctrl+Left"/>
         <KeyBinding Command="{StaticResource StopShortcut}" Gesture="Ctrl+S"/>
         <KeyBinding Command="{StaticResource SwitchShortcut}" Gesture="Tab"/>
+        <KeyBinding Command="{StaticResource TranslateShortcut}" Gesture="Ctrl+T"/>
     </Window.InputBindings>
     <Window.CommandBindings>
         <CommandBinding Command="{StaticResource SetTimeShortcut}" Executed="SetTimeShortcut_Executed"/>
@@ -64,6 +65,7 @@
         <CommandBinding Command="{StaticResource Rewind2Shortcut}" Executed="Rewind2Shortcut_Executed"/>
         <CommandBinding Command="{StaticResource StopShortcut}" Executed="StopShortcut_Executed"/>
         <CommandBinding Command="{StaticResource SwitchShortcut}" Executed="SwitchShortcut_Executed"/>
+        <CommandBinding Command="{StaticResource TranslateShortcut}" Executed="TranslateShortcut_Executed"/>
     </Window.CommandBindings>
 
     <Grid>
@@ -338,6 +340,7 @@
                 </Style>
             </Grid.Resources>
             <TextBlock Name="NextLrcText" HorizontalAlignment="Center" VerticalAlignment="Center" Foreground="#FF9E4848" TextDecorations="{x:Null}" FontFamily="Microsoft YaHei"/>
+            <TextBlock Name="TMPLrcText" Visibility="Hidden" HorizontalAlignment="Center" VerticalAlignment="Center" Foreground="#FF9E4848" TextDecorations="{x:Null}" FontFamily="Microsoft YaHei"/>
         </Grid>
         
         <!--右侧工具列表-->
@@ -395,6 +398,12 @@
                     重做 (Ctrl+Y)
                 </Button.ToolTip>
                 <Image Source="Icons/ToolButtonIcons/Go-into.png"/>
+            </Button>
+            <Button Margin="0,0,0,10" Click="Translate_Click">
+                <Button.ToolTip>
+                    设为翻译 (Ctrl+T)
+                </Button.ToolTip>
+                <Image Source="Icons/ToolButtonIcons/translate.png"/>
             </Button>
 
             <StackPanel Name="ToolsForLrcLineOnly">
