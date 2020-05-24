@@ -151,7 +151,15 @@ namespace LyricEditor.UserControls
             LrcLine line = LrcLinePanel.SelectedItem as LrcLine;
             if (!line.LrcTime.HasValue) return;
             MyMainWindow.MediaPlayer.Position = line.LrcTime.Value;
-            MyMainWindow.UpdateLyric();
+            // 根据是否到达最后一行来设定下一个选中行
+            if (!ReachEnd)
+            {
+                SelectedIndex++;
+            }
+            else
+            {
+                SelectedIndex = -1;
+            }
         }
         /// <summary>
         /// 在主列表上使用按键
@@ -227,16 +235,38 @@ namespace LyricEditor.UserControls
         public void SetCurrentLineTimeForTranslate()
         {
             if (!HasSelection) return;
-            int index = SelectedIndex;
+            if(LrcLinePanel.SelectionMode == SelectionMode.Single)
+            {
+                int index = SelectedIndex;
 
-            // 判断是否为歌曲信息行
-            if (!Manager.LrcList[index].LrcTime.HasValue || ReachEnd) return;
+                // 判断是否为歌曲信息行
+                if (!Manager.LrcList[index].LrcTime.HasValue || ReachEnd) return;
 
-            // 更新选中行的时间
-            Manager.LrcList[index].LrcTime = Manager.LrcList[index+1].LrcTime - new TimeSpan(0,0,0,0,10);
-            ((LrcLine)LrcLinePanel.Items[index]).LrcTime = Manager.LrcList[index + 1].LrcTime - new TimeSpan(0, 0, 0, 0, 10); ;
+                // 更新选中行的时间
+                Manager.LrcList[index].LrcTime = Manager.LrcList[index + 1].LrcTime - new TimeSpan(0, 0, 0, 0, 10);
+                ((LrcLine)LrcLinePanel.Items[index]).LrcTime = Manager.LrcList[index + 1].LrcTime - new TimeSpan(0, 0, 0, 0, 10); ;
 
-            RefreshLrcPanel();
+                RefreshLrcPanel();
+            }else
+            {
+                var indexes = LrcLinePanel.SelectedItems;
+                foreach(LrcLine line in indexes)
+                {
+                    int index = Manager.LrcList.FindIndex(delegate (LrcLine x)
+                    {
+                        return x.LrcTime.Equals(line.LrcTime) && x.LrcText.Equals(line.LrcText);
+                    });
+                    // 判断是否为歌曲信息行
+                    if (!Manager.LrcList[index].LrcTime.HasValue || index >= Manager.LrcList.Count - 2) continue;
+
+                    // 更新选中行的时间
+                    Manager.LrcList[index].LrcTime = Manager.LrcList[index + 1].LrcTime - new TimeSpan(0, 0, 0, 0, 10);
+                    ((LrcLine)LrcLinePanel.Items[index]).LrcTime = Manager.LrcList[index + 1].LrcTime - new TimeSpan(0, 0, 0, 0, 10); ;   
+                }
+                RefreshLrcPanel();
+            }
+            
+            
         }
 
         public void ResetAllTime()

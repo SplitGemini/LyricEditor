@@ -71,41 +71,10 @@ namespace LyricEditor
 
         #endregion
         #region 计时器
-        private bool canRoll = false;
         private bool isRight = true;
-        private bool shouldUpdate = false;
+        private bool canRoll = false;
         private double nextTextWidth;
-        private double rollingInterval = 1.0;  //每一步的偏移量
-        private double offset = 10; //滚动左右空余位置
-        private bool isFirst = true;
 
-        public void UpdateLyric()
-        {
-            shouldUpdate = true;
-            var value = Manager.GetNearestLrc(MediaPlayer.Position);
-            if (value != null)
-            {
-                string tmp = string.Empty;
-                value.TryGetValue("current", out tmp);
-                CurrentLrcText.Text = tmp;
-                value.TryGetValue("pre", out tmp);
-                PreLrcText.Text = tmp;
-                value.TryGetValue("next", out tmp);
-                NextLrcText.Text = tmp;
-                value.TryGetValue("afternext", out tmp);
-                TMPLrcText.Text = tmp;
-                value.TryGetValue("short", out tmp);
-                if (tmp.Equals("true"))
-                {
-                    nextTextWidth = TMPLrcText.ActualWidth;
-                }
-                else
-                {
-                    nextTextWidth = NextLrcText.ActualWidth;
-                }
-            }
-        }
-        
         /// <summary>
         /// 每个计时器时刻，更新时间轴上的全部信息
         /// </summary>
@@ -118,60 +87,60 @@ namespace LyricEditor
 
             TimeBackground.Value = MediaPlayer.Position.TotalSeconds / MediaPlayer.NaturalDuration.TimeSpan.TotalSeconds;
             var value = Manager.GetNearestLrc(MediaPlayer.Position);
-            if(value != null)
+            var shouldSetToLeft = false;
+            if (value != null)
             {
-                if (isFirst)
-                {
-                    UpdateLyric();
-                    isFirst = false;
-                }
                 string tmp = string.Empty;
                 
                 value.TryGetValue("current", out tmp);
-                if (!CurrentLrcText.Text.Equals(tmp) && !shouldUpdate)
+                if (!CurrentLrcText.Text.Equals(tmp))
                 {
-                    CurrentLrcText.Text = tmp;
-                    CurrentLrcText.Left = (CurrentLrcText.ActualWidth - nextTextWidth) / 2;
-                    value.TryGetValue("pre", out tmp);
-                    PreLrcText.Text = tmp;
-                    value.TryGetValue("next", out tmp);
-                    NextLrcText.Text = tmp;
-                    value.TryGetValue("afternext", out tmp);
-                    TMPLrcText.Text = tmp;
+                    shouldSetToLeft = true;
+                    if(!canRoll)
+                        CurrentLrcText.Left = (CurrentLrcText.ActualWidth - nextTextWidth) / 2;
+                }else
+                {
+                    shouldSetToLeft = false;
+                    if (!canRoll)
+                        CurrentLrcText.Left = (CurrentLrcText.ActualWidth - CurrentLrcText.currentTextBlock.ActualWidth) / 2;
                 }
+                CurrentLrcText.Text = tmp;
+                value.TryGetValue("pre", out tmp);
+                PreLrcText.Text = tmp;
+                value.TryGetValue("next", out tmp);
+                NextLrcText.Text = tmp;
+                value.TryGetValue("afternext", out tmp);
+                AfterNextLrcText.Text = tmp;
                 value.TryGetValue("short", out tmp);
                 if (tmp.Equals("true"))
                 {
-                    nextTextWidth = TMPLrcText.ActualWidth;
+                    nextTextWidth = AfterNextLrcText.ActualWidth;
                 }
                 else {
                     nextTextWidth = NextLrcText.ActualWidth;
                 }           
-                if (shouldUpdate)
-                {
-                    CurrentLrcText.Left = (CurrentLrcText.ActualWidth - CurrentLrcText.currentTextBlock.ActualWidth) / 2;
-                    shouldUpdate = false;
-                }
                 
             }
-            var last = canRoll;
             canRoll = CurrentLrcText.currentTextBlock.ActualWidth > CurrentLrcText.ActualWidth;
             if (canRoll)
             {
-                if (!last)
+                var offset = 10.0;  //滚动左右空余位置
+                double rollingInterval = (CurrentLrcText.currentTextBlock.ActualWidth - CurrentLrcText.ActualWidth)/ 50;  //每一步的偏移量，根据每段长度
+                if (shouldSetToLeft)
                 {
                     CurrentLrcText.Left = offset;
-                }
-                if (Math.Abs(CurrentLrcText.Left) <= CurrentLrcText.currentTextBlock.ActualWidth - CurrentLrcText.ActualWidth + offset && isRight)
+                }          
+                else if (Math.Abs(CurrentLrcText.Left) <= CurrentLrcText.currentTextBlock.ActualWidth - CurrentLrcText.ActualWidth + offset && isRight)
                 {
                     CurrentLrcText.Left -= rollingInterval;
                 }
+                /* 需要回滚取消注释
                 else if (CurrentLrcText.Left <= offset)
                 {
                     CurrentLrcText.Left += rollingInterval;
                     isRight = CurrentLrcText.Left >= offset;
                 }
-
+                */
             }  
         }
 
@@ -338,6 +307,9 @@ namespace LyricEditor
                 Title = "歌词编辑器 ：" + Path.GetFileNameWithoutExtension(filename);
                 Cover.Source = GetAlbumArt(filename);
                 GetLyric(filename);
+                CurrentLrcText.Text = string.Empty;
+                PreLrcText.Text = string.Empty;
+                NextLrcText.Text = string.Empty;
             }
             catch (Exception e)
             {
@@ -651,6 +623,8 @@ namespace LyricEditor
                     SortTime.IsEnabled = true;
                     ResetAllTime.IsEnabled = true;
                     ShiftAllTime.IsEnabled = true;
+                    TranslateButton.IsEnabled = true;
+                    TranslateSwitchButton.IsEnabled = true;
                     break;
             }
         }
@@ -667,6 +641,8 @@ namespace LyricEditor
             SortTime.IsEnabled = false;
             ResetAllTime.IsEnabled = false;
             ShiftAllTime.IsEnabled = false;
+            TranslateButton.IsEnabled = false;
+            TranslateSwitchButton.IsEnabled = false;
         }
 
         /// <summary>
@@ -713,7 +689,6 @@ namespace LyricEditor
                     MediaPlayer.Position += LongTimeShift;
                     break;
             }
-            UpdateLyric();
         }
         /// <summary>
         /// 时间轴点击
@@ -727,7 +702,6 @@ namespace LyricEditor
             TimeBackground.Value = percent;
 
             MediaPlayer.Position = new TimeSpan(0, 0, 0, 0, (int)(MediaPlayer.NaturalDuration.TimeSpan.TotalMilliseconds * percent));
-            UpdateLyric();
         }
         /// <summary>
         /// 撤销
@@ -851,6 +825,18 @@ namespace LyricEditor
 
             LrcLinePanel.SetCurrentLineTimeForTranslate();
         }
+
+        private void TranslateSwitch_Click(object sender, RoutedEventArgs e)
+        {
+            if (CurrentLrcPanel != LrcPanelType.LrcLinePanel) return;
+            if (TranslateSwitchButton.IsChecked == true)
+            {
+                LrcLinePanel.LrcLinePanel.SelectionMode = SelectionMode.Multiple;
+            }
+            else {
+                LrcLinePanel.LrcLinePanel.SelectionMode = SelectionMode.Single;
+            }
+        }
         #endregion
 
         #region 快捷键
@@ -892,25 +878,21 @@ namespace LyricEditor
         private void Jump1Shortcut_Executed(object sender, ExecutedRoutedEventArgs e)
         {
             MediaPlayer.Position += ShortTimeShift;
-            UpdateLyric();
         }
 
         private void Jump2Shortcut_Executed(object sender, ExecutedRoutedEventArgs e)
         {
             MediaPlayer.Position += LongTimeShift;
-            UpdateLyric();
         }
 
         private void Rewind1Shortcut_Executed(object sender, ExecutedRoutedEventArgs e)
         {
             MediaPlayer.Position -= ShortTimeShift;
-            UpdateLyric();
         }
 
         private void Rewind2Shortcut_Executed(object sender, ExecutedRoutedEventArgs e)
         {
             MediaPlayer.Position -= LongTimeShift;
-            UpdateLyric();
         }
 
         private void StopShortcut_Executed(object sender, ExecutedRoutedEventArgs e)
@@ -928,9 +910,10 @@ namespace LyricEditor
             Translate_Click(this, null);
         }
 
+
         //Delete, Up, Down快捷键处理在LrcLineView.xaml.cs实现
         #endregion
 
-
+        
     }
 }

@@ -340,7 +340,7 @@
                 </Style>
             </Grid.Resources>
             <TextBlock Name="NextLrcText" HorizontalAlignment="Center" VerticalAlignment="Center" Foreground="#FF9E4848" TextDecorations="{x:Null}" FontFamily="Microsoft YaHei"/>
-            <TextBlock Name="TMPLrcText" Visibility="Hidden" HorizontalAlignment="Center" VerticalAlignment="Center" Foreground="#FF9E4848" TextDecorations="{x:Null}" FontFamily="Microsoft YaHei"/>
+            <TextBlock Name="AfterNextLrcText" Visibility="Hidden" HorizontalAlignment="Center" VerticalAlignment="Center" Foreground="#FF9E4848" TextDecorations="{x:Null}" FontFamily="Microsoft YaHei"/>
         </Grid>
         
         <!--右侧工具列表-->
@@ -399,7 +399,12 @@
                 </Button.ToolTip>
                 <Image Source="Icons/ToolButtonIcons/Go-into.png"/>
             </Button>
-            <Button Margin="0,0,0,10" Click="Translate_Click">
+            <ToggleButton Name="TranslateSwitchButton" Click="TranslateSwitch_Click" Style="{StaticResource ToolToggleButton}" Width="30">
+                <ToggleButton.ToolTip>
+                    切换为设置翻译模式
+                </ToggleButton.ToolTip>
+            </ToggleButton>
+            <Button Name="TranslateButton" Margin="0,0,0,10" Click="Translate_Click">
                 <Button.ToolTip>
                     设为翻译 (Ctrl+T)
                 </Button.ToolTip>
