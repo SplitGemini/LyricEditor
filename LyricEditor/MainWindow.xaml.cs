@@ -65,7 +65,7 @@ namespace LyricEditor
 
         private string FileName;
 
-        private static string[] MediaExtensions = new string[] { ".mp3", ".wav", ".3gp", ".mp4", ".avi", ".wmv", ".wma", ".aac", ".flac", ".ape", ".opus", ".ogg" };
+        private static string[] MediaExtensions = new string[] { ".mp3", ".wav", ".3gp", ".mp4", ".m4a", ".avi", ".wmv", ".wma", ".aac", ".flac", ".ape", ".opus", ".ogg" };
         private static string[] LyricExtensions = new string[] { ".lrc", ".txt" };
         private static string TempFileName = "temp.txt";
 
@@ -236,32 +236,16 @@ namespace LyricEditor
             }
             if (!lyricname.Equals(string.Empty) && File.Exists(lyricname))
             {
-                if (Manager.LoadFromText(File.ReadAllText(lyricname)))
-                {
-                    UpdateLrcView();
-                }
-                else
-                {
-                    LrcTextPanel.Text = Manager.text;
-                    SwitchToTextLrcPanel();
-                }
-                
-            } else if (filename.EndsWith(".mp3"))   //一般只有mp3采用id2tag
+                LoadFromFile(lyricname);
+            }
+            else if (filename.EndsWith(".mp3"))   //一般只有mp3采用id2tag
             {
                 var file = TagLib.File.Create(filename);
                 var lyric = file.Tag.Lyrics;
                 file.Dispose();
                 if (lyric != null)
                 {
-                    if (Manager.LoadFromText(lyric))
-                    {
-                        UpdateLrcView();
-                    }
-                    else
-                    {
-                        LrcTextPanel.Text = Manager.text;
-                        SwitchToTextLrcPanel();
-                    } 
+                    LoadFromText(lyric);
                 }
             }
         }
@@ -399,7 +383,7 @@ namespace LyricEditor
         private void ImportMedia_Click(object sender, RoutedEventArgs e)
         {
             Win32.OpenFileDialog ofd = new Win32.OpenFileDialog();
-            ofd.Filter = "媒体文件|*.mp3;*.wav;*.3gp;*.mp4;*.avi;*.wmv;*.wma;*.aac;*.flac;*.ape;*.opus;*.ogg|所有文件|*.*";
+            ofd.Filter = "媒体文件|*.mp3;*.wav;*.3gp;*.mp4;*.m4a;*.avi;*.wmv;*.wma;*.aac;*.flac;*.ape;*.opus;*.ogg|所有文件|*.*";
 
             if (ofd.ShowDialog() == Win32.DialogResult.OK)
             {
